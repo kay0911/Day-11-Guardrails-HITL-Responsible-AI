@@ -65,32 +65,41 @@ class ConfidenceRouter:
         Returns:
             RoutingDecision with routing action and metadata
         """
-        # TODO 12: Implement routing logic
-        #
         # 1. Check if action_type is in HIGH_RISK_ACTIONS
-        #    -> If yes: always escalate (action="escalate", priority="high",
-        #       requires_human=True, reason="High-risk action: {action_type}")
-        #
-        # 2. Check confidence thresholds:
-        #    - confidence >= 0.9:
-        #      action="auto_send", priority="low",
-        #      requires_human=False, reason="High confidence"
-        #
-        #    - 0.7 <= confidence < 0.9:
-        #      action="queue_review", priority="normal",
-        #      requires_human=True, reason="Medium confidence — needs review"
-        #
-        #    - confidence < 0.7:
-        #      action="escalate", priority="high",
-        #      requires_human=True, reason="Low confidence — escalating"
+        if action_type in HIGH_RISK_ACTIONS:
+            return RoutingDecision(
+                action="escalate",
+                confidence=confidence,
+                reason=f"High-risk action: {action_type}",
+                priority="high",
+                requires_human=True
+            )
 
-        return RoutingDecision(
-            action="auto_send",
-            confidence=confidence,
-            reason="TODO: implement routing logic",
-            priority="low",
-            requires_human=False,
-        )  # TODO: Replace with implementation
+        # 2. Check confidence thresholds
+        if confidence >= self.HIGH_THRESHOLD:
+            return RoutingDecision(
+                action="auto_send",
+                confidence=confidence,
+                reason="High confidence",
+                priority="low",
+                requires_human=False
+            )
+        elif confidence >= self.MEDIUM_THRESHOLD:
+            return RoutingDecision(
+                action="queue_review",
+                confidence=confidence,
+                reason="Medium confidence — needs review",
+                priority="normal",
+                requires_human=True
+            )
+        else:
+            return RoutingDecision(
+                action="escalate",
+                confidence=confidence,
+                reason="Low confidence — escalating",
+                priority="high",
+                requires_human=True
+            )
 
 
 # ============================================================
@@ -109,27 +118,27 @@ class ConfidenceRouter:
 hitl_decision_points = [
     {
         "id": 1,
-        "name": "TODO: Name this decision point",
-        "trigger": "TODO: When does this trigger?",
-        "hitl_model": "TODO: human-in-the-loop / human-on-the-loop / human-as-tiebreaker",
-        "context_needed": "TODO: What does the reviewer need to see?",
-        "example": "TODO: Give a concrete example scenario",
+        "name": "High-Value Transaction Approval",
+        "trigger": "User requests transfer_money action type where transfer amount exceeds 50,000,000 VND, or any transfer_money action triggered under suspicious location.",
+        "hitl_model": "human-in-the-loop",
+        "context_needed": "User's account balance, daily limit, recipient account details (blacklists/white-lists), geo-location, and transaction history.",
+        "example": "Customer requests to transfer 100,000,000 VND to an external beneficiary. The transfer is paused until a bank clerk confirms identity and approves the transaction via internal dashboard.",
     },
     {
         "id": 2,
-        "name": "TODO: Name this decision point",
-        "trigger": "TODO: When does this trigger?",
-        "hitl_model": "TODO: human-in-the-loop / human-on-the-loop / human-as-tiebreaker",
-        "context_needed": "TODO: What does the reviewer need to see?",
-        "example": "TODO: Give a concrete example scenario",
+        "name": "Sensitive Account Modification",
+        "trigger": "Action type is close_account, change_password, delete_data, or update_personal_info.",
+        "hitl_model": "human-in-the-loop",
+        "context_needed": "User account verification documents, current KYC status, audit logs, and security question answers.",
+        "example": "Customer asks 'Tôi muốn đóng tài khoản ngay bây giờ'. The assistant routes the request to an account retention specialist to review and verify via a verification call before finalizing account deletion.",
     },
     {
         "id": 3,
-        "name": "TODO: Name this decision point",
-        "trigger": "TODO: When does this trigger?",
-        "hitl_model": "TODO: human-in-the-loop / human-on-the-loop / human-as-tiebreaker",
-        "context_needed": "TODO: What does the reviewer need to see?",
-        "example": "TODO: Give a concrete example scenario",
+        "name": "Ambiguous Dispute Resolution Review",
+        "trigger": "AI classification confidence score is low (< 0.7) for billing disputes or double charge inquiries.",
+        "hitl_model": "human-as-tiebreaker",
+        "context_needed": "AI generated resolution draft, billing records, transaction statement, history of previous billing claims, and system logs.",
+        "example": "AI is unsure if double billing occurred on the customer's account (confidence 0.65). The draft explanation is held, and a financial operations analyst reviews statements to check if the duplicate is a bank error, choosing whether to approve refund or send explanation.",
     },
 ]
 
